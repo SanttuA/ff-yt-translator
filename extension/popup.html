@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>YouTube Subtitle Translator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon.svg" alt="" width="22" height="22">
+    <h1>Subtitle Translator</h1>
+    <span id="dot" class="dot" title="Checking AI server…"></span>
+  </header>
+
+  <main>
+    <p class="muted small">Click the <b>文A</b> button in the YouTube player to translate that video's captions.</p>
+    <div id="serverMsg" class="banner" hidden></div>
+
+    <label class="field"><span>Translate to</span>
+      <select id="target"></select>
+    </label>
+    <label class="field" id="targetOtherWrap" hidden><span>Language code (e.g. pt-BR, ca, tl)</span>
+      <input id="targetOther" type="text" spellcheck="false">
+    </label>
+    <label class="row"><span>Show the original line too</span><input type="checkbox" id="showOriginal"></label>
+    <div class="row"><span>Subtitle size</span>
+      <div class="seg" id="size">
+        <button data-v="s">S</button><button data-v="m">M</button><button data-v="l">L</button>
+      </div>
+    </div>
+
+    <h2>AI model (runs on your computer)</h2>
+    <label class="field"><span>Model</span>
+      <span class="inline">
+        <select id="model"></select>
+        <button id="refresh" class="ghost" title="Reload installed models">↻</button>
+      </span>
+    </label>
+    <label class="field"><span>Server address</span>
+      <input id="endpoint" type="text" spellcheck="false">
+    </label>
+    <div class="inline">
+      <button id="test" class="primary">Test translation</button>
+      <span id="testOut" class="muted small"></span>
+    </div>
+
+    <h2>Storage</h2>
+    <div class="inline">
+      <button id="clearCache" class="ghost">Clear saved translations</button>
+      <span id="cacheInfo" class="muted small"></span>
+    </div>
+  </main>
+
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

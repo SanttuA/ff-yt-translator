@@ -1,0 +1,94 @@
+/* Hide YouTube's own captions while the translated overlay is on. */
+html.yttr-active #movie_player .ytp-caption-window-container { display: none !important; }
+
+.yttr-overlay {
+  --yttr-fs: 22px;
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 4%;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  transition: bottom .15s ease;
+}
+#movie_player:not(.ytp-autohide) .yttr-overlay { bottom: 64px; }
+
+.yttr-box {
+  max-width: 82%;
+  padding: .2em .55em .25em;
+  border-radius: 4px;
+  background: rgba(8, 8, 8, .78);
+  text-align: center;
+  font-family: "YouTube Noto", Roboto, "Hiragino Sans", "Yu Gothic UI", "Noto Sans CJK JP", "Noto Sans", Arial, sans-serif;
+  pointer-events: auto;
+  user-select: text;
+}
+.yttr-orig {
+  color: #d9d9d9;
+  font-size: calc(var(--yttr-fs) * .62);
+  line-height: 1.35;
+}
+.yttr-orig:empty { display: none; }
+.yttr-tr {
+  color: #fff;
+  font-size: var(--yttr-fs);
+  line-height: 1.3;
+  font-weight: 500;
+  text-shadow: 0 0 2px rgba(0, 0, 0, .6);
+}
+.yttr-hide-orig:not(.yttr-force-orig) .yttr-orig { display: none; }
+.yttr-pending .yttr-tr { color: #9aa0a6; letter-spacing: .15em; }
+.yttr-force-orig .yttr-orig { font-size: var(--yttr-fs); color: #fff; }
+.yttr-force-orig .yttr-tr { display: none; }
+
+.yttr-status {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 12px;
+  border-radius: 8px;
+  background: rgba(20, 20, 24, .88);
+  color: #fff;
+  font: 500 13px/1.3 Roboto, Arial, sans-serif;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
+  max-width: 70%;
+}
+.yttr-status.yttr-error { background: rgba(140, 28, 28, .92); }
+.yttr-status button {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: 600 16px Roboto, Arial, sans-serif;
+  padding: 0 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: .8;
+}
+.yttr-status button:hover { background: rgba(255, 255, 255, .26); }
+
+/* Player control button */
+.ytp-button.yttr-btn { position: relative; opacity: .9; }
+.ytp-button.yttr-btn:hover { opacity: 1; }
+.ytp-button.yttr-btn[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 30%; right: 30%;
+  bottom: 22%;
+  height: 3px;
+  border-radius: 2px;
+  background: #4f8cff;
+}
+
+/* The translated lines are also given to the <video> as a native subtitle
+   track so that Firefox's Picture-in-Picture window can show them. In the
+   page the overlay shows them already, so the native copy is invisible. */
+#movie_player video::cue {
+  color: transparent;
+  background: transparent;
+  text-shadow: none;
+  outline: none;
+}

@@ -1,0 +1,46 @@
+:root {
+  --bg: #ffffff; --fg: #18181b; --muted: #6b6b76; --line: #e7e7ec;
+  --card: #f6f6f8; --accent: #3b6ff5; --accent-fg: #fff;
+  --ok: #1f9d55; --bad: #d64545; --warn-bg: #fff4e5; --warn-fg: #8a4b00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1b22; --fg: #ececf1; --muted: #a0a0ab; --line: #34333d;
+    --card: #26252e; --accent: #6f95ff; --accent-fg: #0e0e12;
+    --warn-bg: #3a2a12; --warn-fg: #ffcf8a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; width: 340px;
+  background: var(--bg); color: var(--fg);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+header { display: flex; align-items: center; gap: 8px; padding: 12px 14px 4px; }
+h1 { font-size: 15px; margin: 0; flex: 1; font-weight: 650; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 8px; font-weight: 600; }
+main { padding: 0 14px 14px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+.muted { color: var(--muted); } .small { font-size: 12px; }
+
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; background: none; color: var(--fg); padding: 3px 10px; font: inherit; cursor: pointer; }
+.seg button.on { background: var(--accent); color: var(--accent-fg); }
+
+.field { display: block; margin-bottom: 10px; }
+.field > span:first-child { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.inline { display: flex; gap: 8px; align-items: center; }
+select, input[type=text] {
+  flex: 1; width: 100%; padding: 6px 8px; border-radius: 7px; border: 1px solid var(--line);
+  background: var(--card); color: var(--fg); font: inherit;
+}
+button.primary, button.ghost { border-radius: 7px; padding: 6px 12px; font: inherit; font-weight: 600; cursor: pointer; flex: none; }
+button.primary { border: 0; background: var(--accent); color: var(--accent-fg); }
+button.ghost { border: 1px solid var(--line); background: none; color: var(--fg); }
+button:disabled { opacity: .6; cursor: default; }
+
+.banner { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: 9px 11px; margin: 6px 0 10px; font-size: 12px; }
+.banner code { font-family: ui-monospace, Menlo, Consolas, monospace; background: rgba(0, 0, 0, .08); padding: 1px 4px; border-radius: 4px; user-select: all; }
