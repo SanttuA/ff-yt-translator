@@ -492,22 +492,33 @@
     el.firstChild.textContent = text;
   }
 
+  // 文/A icon drawn on a 24px grid. The new player uses 24px icons; the old one
+  // uses 36px icons scaled to the button, so pad the grid to match whichever
+  // the CC button has.
   function makeIcon() {
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 36 36');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', '100%');
-    const glyph = (x, y, size, str) => {
-      const t = document.createElementNS(ns, 'text');
-      t.setAttribute('x', x); t.setAttribute('y', y);
-      t.setAttribute('font-size', size); t.setAttribute('font-weight', '700');
-      t.setAttribute('font-family', 'Roboto, Arial, "Noto Sans CJK JP", sans-serif');
-      t.setAttribute('fill', '#fff');
-      t.textContent = str;
-      return t;
-    };
-    svg.append(glyph('8', '20', '11', '文'), glyph('18', '27', '11', 'A'));
+    const ccSvg = ccButton() && ccButton().querySelector('svg');
+    const ccGrid = ccSvg && ccSvg.viewBox && ccSvg.viewBox.baseVal ? ccSvg.viewBox.baseVal.width : 0;
+    if (ccGrid === 24) {
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('width', '24');
+      svg.setAttribute('height', '24');
+    } else {
+      svg.setAttribute('viewBox', '-6 -6 36 36');
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('height', '100%');
+    }
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d',
+      'M7.5 2v2.5M2.5 4.5h10M4.5 6.5l7 6.5M10.5 6.5l-7.5 6.5' + // 文
+      'M13.5 21.5l4-10.5 4 10.5M15 17.5h5');                    // A
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#fff');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.append(path);
     return svg;
   }
 
@@ -530,6 +541,12 @@
         if (state.wanted) stopTranslation(state);
         else startTranslation(state);
       });
+    }
+    // Sit right before the CC button, inside its group in the new player.
+    const cc = ccButton();
+    if (cc && cc.parentNode) {
+      if (b.nextElementSibling !== cc) cc.before(b);
+    } else if (!b.parentNode) {
       controls.prepend(b);
     }
     st.button = b;
