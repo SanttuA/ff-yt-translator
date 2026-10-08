@@ -82,6 +82,7 @@ The toolbar icon opens the settings:
 - target language (defaults to your browser's language)
 - whether to show the original line
 - subtitle size
+- how long lines stay on screen: **Short**, **Normal** or **Long**. Longer settings keep a line up after the caption ends and through short pauses. A new line always appears as soon as it starts, so fast speech doesn't fall behind.
 - model and server address
 - a **Test translation** button
 

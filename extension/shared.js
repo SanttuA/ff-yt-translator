@@ -9,7 +9,8 @@
     model: 'gemma4:e4b',
     target: '',            // language to translate into; '' = browser language
     showOriginal: true,    // show the original line above the translation
-    size: 'm'              // subtitle size: s / m / l
+    size: 'm',             // subtitle size: s / m / l
+    timing: 'normal'       // how long lines stay on screen: quick / normal / relaxed
   };
 
   const BATCH = 16;          // subtitle lines per request to the model
@@ -142,7 +143,6 @@
 
   const MIN_CUE_SEC = 2.5;    // lines shorter than this are merged with the next one...
   const MERGE_GAP_SEC = 1;    // ...when it follows within this gap
-  const BRIDGE_GAP_SEC = 1;   // a line stays up through pauses shorter than this
   const NO_SPACE = /[぀-ヿ㐀-鿿豈-﫿]/; // scripts written without spaces
 
   // Merge lines that would flash by too fast to read into the following
@@ -164,29 +164,41 @@
     return out;
   }
 
+  // How long lines stay on screen (the "timing" setting). cps: reading speed
+  // in characters per second (CJK is read at about half that); min / max:
+  // limits for the reading time; hold: extra time after the caption's own
+  // end; bridge: pauses shorter than this keep the line up until the next one.
+  const TIMING = {
+    quick:   { cps: 15, min: 1.5, max: 6, hold: 0,   bridge: 1 },
+    normal:  { cps: 12, min: 2,   max: 7, hold: 0.8, bridge: 1.5 },
+    relaxed: { cps: 9,  min: 2.5, max: 8, hold: 1.5, bridge: 2.5 }
+  };
+  const timingOf = name => TIMING[name] || TIMING.normal;
+
   // Seconds a line needs on screen to be read comfortably.
-  function readingTime(text) {
+  function readingTime(text, timing = TIMING.normal) {
     const t = String(text || '');
-    const charsPerSec = CJK.test(t) ? 7 : 15;
-    return Math.min(6, Math.max(1.5, t.length / charsPerSec));
+    const charsPerSec = timing.cps * (CJK.test(t) ? 7 / 15 : 1);
+    return Math.min(timing.max, Math.max(timing.min, t.length / charsPerSec));
   }
 
-  // When cue i should leave the screen. A line stays up long enough to read
-  // `text` (what is actually shown, usually the translation) and through
-  // short pauses, but always gives way to the next line.
-  function cueDisplayEnd(cues, i, text) {
+  // When cue i should leave the screen. A line stays up a little past its
+  // caption, long enough to read `text` (what is actually shown, usually the
+  // translation) and through short pauses, but always gives way to the next
+  // line the moment it starts.
+  function cueDisplayEnd(cues, i, text, timing = TIMING.normal) {
     const c = cues[i], next = cues[i + 1];
-    let end = Math.max(c.e, c.s + readingTime(text == null ? c.text : text));
-    if (next && next.s - end < BRIDGE_GAP_SEC) end = next.s;
+    let end = Math.max(c.e + timing.hold, c.s + readingTime(text == null ? c.text : text, timing));
+    if (next && next.s - end < timing.bridge) end = next.s;
     return end;
   }
 
   // Index of the cue to show at time t, or -1. textOf(i) gives the text
   // shown for cue i (see cueDisplayEnd).
-  function cueToShow(cues, t, textOf) {
+  function cueToShow(cues, t, textOf, timing = TIMING.normal) {
     const i = cueIndexAt(cues, t);
     if (i < 0) return -1;
-    return t < cueDisplayEnd(cues, i, textOf ? textOf(i) : null) ? i : -1;
+    return t < cueDisplayEnd(cues, i, textOf ? textOf(i) : null, timing) ? i : -1;
   }
 
   // Text for a native WebVTT cue: Firefox parses it as WebVTT markup, so
@@ -338,7 +350,7 @@
   const api = {
     DEFAULTS, BATCH, CONTEXT_LINES, LOOKAHEAD_SEC, CACHE_VIDEOS,
     baseLang, sameLang, withDefaults, langName, pickSourceTrack,
-    parseJson3, mergeShortCues, readingTime, cueDisplayEnd, cueToShow, vttEscape, cueIndexAt, systemPrompt, buildMessages, parseNumbered,
+    TIMING, timingOf, parseJson3, mergeShortCues, readingTime, cueDisplayEnd, cueToShow, vttEscape, cueIndexAt, systemPrompt, buildMessages, parseNumbered,
     hash, cuesSignature, isCaptionUrl, isValidEndpoint, cacheKey, chatUrl, modelsUrl, chatBody, isReasoningParamError
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

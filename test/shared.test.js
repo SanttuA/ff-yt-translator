@@ -103,6 +103,8 @@ describe('parseJson3', () => {
 });
 
 describe('readable timing', () => {
+  const Q = S.TIMING.quick; // the original timing; the exact numbers below assume it
+
   test('mergeShortCues joins a short line with the one right after it', () => {
     const cues = [
       { s: 0, e: 0.8, text: 'Yeah.' },
@@ -138,43 +140,80 @@ describe('readable timing', () => {
     expect(S.mergeShortCues([])).toEqual([]);
   });
 
-  test('readingTime grows with length, within 1.5–6 s', () => {
-    expect(S.readingTime('Hi')).toBe(1.5);
-    expect(S.readingTime('x'.repeat(45))).toBe(3);
-    expect(S.readingTime('あ'.repeat(14))).toBe(2);
-    expect(S.readingTime('x'.repeat(500))).toBe(6);
-    expect(S.readingTime(null)).toBe(1.5);
+  test('readingTime grows with length, within the preset limits', () => {
+    expect(S.readingTime('Hi', Q)).toBe(1.5);
+    expect(S.readingTime('x'.repeat(45), Q)).toBe(3);
+    expect(S.readingTime('あ'.repeat(14), Q)).toBe(2);
+    expect(S.readingTime('x'.repeat(500), Q)).toBe(6);
+    expect(S.readingTime(null, Q)).toBe(1.5);
   });
 
   test('cueToShow keeps a line up long enough to read it', () => {
     const cues = [{ s: 0, e: 0.5, text: 'x'.repeat(45) }, { s: 10, e: 12, text: 'next' }];
-    expect(S.cueToShow(cues, 2.9)).toBe(0); // 45 chars ≈ 3 s of reading
-    expect(S.cueToShow(cues, 3.1)).toBe(-1);
-    expect(S.cueToShow(cues, -1)).toBe(-1);
+    expect(S.cueToShow(cues, 2.9, null, Q)).toBe(0); // 45 chars ≈ 3 s of reading
+    expect(S.cueToShow(cues, 3.1, null, Q)).toBe(-1);
+    expect(S.cueToShow(cues, -1, null, Q)).toBe(-1);
   });
 
   test('cueToShow measures the shown text (the translation)', () => {
     const cues = [{ s: 0, e: 0.5, text: 'はい' }];
-    expect(S.cueToShow(cues, 2.5, () => 'x'.repeat(45))).toBe(0);
-    expect(S.cueToShow(cues, 2.5)).toBe(-1);
+    expect(S.cueToShow(cues, 2.5, () => 'x'.repeat(45), Q)).toBe(0);
+    expect(S.cueToShow(cues, 2.5, null, Q)).toBe(-1);
   });
 
   test('cueToShow bridges short pauses but never delays the next line', () => {
     const cues = [{ s: 0, e: 2, text: 'one' }, { s: 2.8, e: 4, text: 'two' }, { s: 9, e: 10, text: 'three' }];
-    expect(S.cueToShow(cues, 2.5)).toBe(0);  // 0.8 s pause: no blink
-    expect(S.cueToShow(cues, 2.8)).toBe(1);  // next line takes over on time
-    expect(S.cueToShow(cues, 6)).toBe(-1);   // long pause: box hides
+    expect(S.cueToShow(cues, 2.5, null, Q)).toBe(0);  // 0.8 s pause: no blink
+    expect(S.cueToShow(cues, 2.8, null, Q)).toBe(1);  // next line takes over on time
+    expect(S.cueToShow(cues, 6, null, Q)).toBe(-1);   // long pause: box hides
   });
 
   test('cueDisplayEnd matches what cueToShow shows', () => {
     const cues = [{ s: 0, e: 0.5, text: 'x'.repeat(45) }, { s: 3.5, e: 5, text: 'b' }, { s: 20, e: 21, text: 'c' }];
-    expect(S.cueDisplayEnd(cues, 0)).toBe(3.5);              // read time 3 s, then bridged to the next line
-    expect(S.cueDisplayEnd(cues, 1, 'x'.repeat(30))).toBe(5.5); // 30 chars ≈ 2 s of reading
-    expect(S.cueDisplayEnd(cues, 2, 'x'.repeat(90))).toBe(26);  // 6 s cap, last line
-    expect(S.cueToShow(cues, 3.4)).toBe(0);
-    expect(S.cueToShow(cues, 3.5)).toBe(1);
-    expect(S.cueToShow(cues, 4.9)).toBe(1);
-    expect(S.cueToShow(cues, 5.1)).toBe(-1); // 'b' needs only the 1.5 s minimum
+    expect(S.cueDisplayEnd(cues, 0, null, Q)).toBe(3.5);              // read time 3 s, then bridged to the next line
+    expect(S.cueDisplayEnd(cues, 1, 'x'.repeat(30), Q)).toBe(5.5); // 30 chars ≈ 2 s of reading
+    expect(S.cueDisplayEnd(cues, 2, 'x'.repeat(90), Q)).toBe(26);  // 6 s cap, last line
+    expect(S.cueToShow(cues, 3.4, null, Q)).toBe(0);
+    expect(S.cueToShow(cues, 3.5, null, Q)).toBe(1);
+    expect(S.cueToShow(cues, 4.9, null, Q)).toBe(1);
+    expect(S.cueToShow(cues, 5.1, null, Q)).toBe(-1); // 'b' needs only the 1.5 s minimum
+  });
+
+  test('timingOf falls back to normal, which is the default setting', () => {
+    expect(S.timingOf('relaxed')).toBe(S.TIMING.relaxed);
+    expect(S.timingOf('bogus')).toBe(S.TIMING.normal);
+    expect(S.timingOf(undefined)).toBe(S.TIMING.normal);
+    expect(S.withDefaults(null, 'en').timing).toBe('normal');
+    expect(S.readingTime('Hi')).toBe(S.readingTime('Hi', S.TIMING.normal));
+  });
+
+  test('longer presets hold a line past the end of its caption', () => {
+    const cues = [{ s: 0, e: 2, text: 'one' }];
+    expect(S.cueDisplayEnd(cues, 0, null, S.TIMING.quick)).toBe(2);
+    expect(S.cueDisplayEnd(cues, 0, null, S.TIMING.normal)).toBeCloseTo(2.8);
+    expect(S.cueDisplayEnd(cues, 0, null, S.TIMING.relaxed)).toBeCloseTo(3.5);
+  });
+
+  test('longer presets bridge longer pauses', () => {
+    const cues = [{ s: 0, e: 2, text: 'one' }, { s: 4.5, e: 6, text: 'two' }];
+    expect(S.cueToShow(cues, 4, null, S.TIMING.quick)).toBe(-1);
+    expect(S.cueToShow(cues, 4, null, S.TIMING.normal)).toBe(-1);
+    expect(S.cueToShow(cues, 4, null, S.TIMING.relaxed)).toBe(0);
+  });
+
+  test('no preset ever delays the next line', () => {
+    const cues = [{ s: 0, e: 0.5, text: 'x'.repeat(100) }, { s: 1, e: 2, text: 'y' }];
+    for (const timing of Object.values(S.TIMING)) {
+      expect(S.cueToShow(cues, 0.99, null, timing)).toBe(0);
+      expect(S.cueToShow(cues, 1, null, timing)).toBe(1);
+    }
+  });
+
+  test('presets order from shortest to longest', () => {
+    const cues = [{ s: 0, e: 1, text: 'x'.repeat(40) }, { s: 30, e: 31, text: 'y' }];
+    const end = name => S.cueDisplayEnd(cues, 0, null, S.TIMING[name]);
+    expect(end('quick')).toBeLessThan(end('normal'));
+    expect(end('normal')).toBeLessThan(end('relaxed'));
   });
 
   test('vttEscape keeps cue text from being read as WebVTT markup', () => {
@@ -191,13 +230,15 @@ describe('readable timing', () => {
     }
     const raw = S.parseJson3({ events }, true);
     const cues = S.mergeShortCues(raw);
-    const shownFor = i => {
+    const shownFor = (i, timing) => {
       let t = cues[i].s, n = 0;
-      while (S.cueToShow(cues, t) === i) { t += 0.05; n++; }
+      while (S.cueToShow(cues, t, null, timing) === i) { t += 0.05; n++; }
       return n * 0.05;
     };
     expect(Math.min(...raw.map(c => c.e - c.s))).toBeLessThan(1);
-    for (let i = 0; i < cues.length - 1; i++) expect(shownFor(i)).toBeGreaterThanOrEqual(1.95);
+    for (const timing of Object.values(S.TIMING)) {
+      for (let i = 0; i < cues.length - 1; i++) expect(shownFor(i, timing)).toBeGreaterThanOrEqual(1.95);
+    }
   });
 });
 
