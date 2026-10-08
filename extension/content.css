@@ -71,7 +71,14 @@ html.yttr-active #movie_player .ytp-caption-window-container { display: none !im
 .yttr-status button:hover { background: rgba(255, 255, 255, .26); }
 
 /* Player control button */
-.ytp-button.yttr-btn { position: relative; opacity: .9; }
+.ytp-button.yttr-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .9;
+}
+.ytp-button.yttr-btn svg { display: block; flex: none; }
 .ytp-button.yttr-btn:hover { opacity: 1; }
 .ytp-button.yttr-btn[aria-pressed="true"]::after {
   content: "";
