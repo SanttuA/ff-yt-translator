@@ -21,6 +21,14 @@ async function saveSettings(patch) {
   await browser.storage.local.set({ settings });
 }
 
+// A segmented control (<div class="seg" id=key>) bound to settings[key].
+function segSetting(key) {
+  const buttons = document.querySelectorAll('#' + key + ' button');
+  const paint = () => buttons.forEach(b => b.classList.toggle('on', b.dataset.v === settings[key]));
+  buttons.forEach(b => b.addEventListener('click', async () => { await saveSettings({ [key]: b.dataset.v }); paint(); }));
+  paint();
+}
+
 /* ---------- target language ---------- */
 function canonicalLang(code) {
   try { return Intl.getCanonicalLocales(code.trim())[0] || null; } catch { return null; }
@@ -114,10 +122,8 @@ async function init() {
   $('showOriginal').checked = !!settings.showOriginal;
   $('showOriginal').addEventListener('change', () => saveSettings({ showOriginal: $('showOriginal').checked }));
 
-  const segButtons = document.querySelectorAll('#size button');
-  const paintSize = () => segButtons.forEach(b => b.classList.toggle('on', b.dataset.v === settings.size));
-  segButtons.forEach(b => b.addEventListener('click', async () => { await saveSettings({ size: b.dataset.v }); paintSize(); }));
-  paintSize();
+  segSetting('size');
+  segSetting('timing');
 
   $('endpoint').value = settings.endpoint;
   $('endpoint').addEventListener('change', async () => {

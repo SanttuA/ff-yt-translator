@@ -29,6 +29,7 @@
     const st = state;
     if (!st) return;
     applyOverlaySettings();
+    if (old.timing !== settings.timing && st.run) syncPipCues(st.run);
     if (old.target !== settings.target || old.model !== settings.model) {
       if (st.wanted) {
         stopTranslation(st);
@@ -375,9 +376,10 @@
       if (!track) return;
       if (track.mode !== 'showing' && !isAd()) track.mode = 'showing';
       run.vtt = run.vtt || [];
+      const timing = S.timingOf(settings.timing);
       for (let i = i0; i < i1; i++) {
         if (run.vtt[i]) track.removeCue(run.vtt[i]);
-        const end = S.cueDisplayEnd(run.cues, i, shownText(run, i));
+        const end = S.cueDisplayEnd(run.cues, i, shownText(run, i), timing);
         run.vtt[i] = new VTTCue(run.cues[i].s, end, S.vttEscape(pipCueText(run, i)));
         track.addCue(run.vtt[i]);
       }
@@ -453,7 +455,7 @@
     let orig = '', tr = '', pending = false;
     if (!isAd()) {
       const t = v.currentTime;
-      const i = S.cueToShow(run.cues, t, j => shownText(run, j));
+      const i = S.cueToShow(run.cues, t, j => shownText(run, j), S.timingOf(settings.timing));
       if (i >= 0) {
         orig = run.cues[i].text;
         const x = run.tr[i];
