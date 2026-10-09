@@ -217,6 +217,28 @@
     return ans;
   }
 
+  /* ---------- wait estimate ---------- */
+
+  // Running average of request times, weighted toward recent ones.
+  const nextAvg = (avg, ms) => (avg ? Math.round(avg * 0.7 + ms * 0.3) : Math.round(ms));
+
+  // Milliseconds until the line at the playhead is translated: what is left
+  // of the request in flight, plus one more request when that one is for
+  // other lines. null while no request time has been measured.
+  function waitEstimate(avgMs, elapsedMs, sameBatch) {
+    if (!avgMs) return null;
+    return Math.max(0, avgMs - elapsedMs) + (sameBatch ? 0 : avgMs);
+  }
+
+  // Status text while the line at the playhead waits for its translation.
+  function waitStatus(ms) {
+    if (ms == null) return 'Translating…';
+    const s = Math.ceil(ms / 1000);
+    if (s <= 1) return 'Translating… almost ready';
+    if (s < 60) return 'Translating… ready in ~' + s + ' s';
+    return 'Translating… ready in ~' + Math.ceil(s / 60) + ' min';
+  }
+
   /* ---------- translation prompt ---------- */
 
   function systemPrompt(src, tgt) {
@@ -350,7 +372,8 @@
   const api = {
     DEFAULTS, BATCH, CONTEXT_LINES, LOOKAHEAD_SEC, CACHE_VIDEOS,
     baseLang, sameLang, withDefaults, langName, pickSourceTrack,
-    TIMING, timingOf, parseJson3, mergeShortCues, readingTime, cueDisplayEnd, cueToShow, vttEscape, cueIndexAt, systemPrompt, buildMessages, parseNumbered,
+    TIMING, timingOf, parseJson3, mergeShortCues, readingTime, cueDisplayEnd, cueToShow, vttEscape, cueIndexAt,
+    nextAvg, waitEstimate, waitStatus, systemPrompt, buildMessages, parseNumbered,
     hash, cuesSignature, isCaptionUrl, isValidEndpoint, cacheKey, chatUrl, modelsUrl, chatBody, isReasoningParamError
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

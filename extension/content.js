@@ -10,6 +10,10 @@
   let settings = S.withDefaults(null, UI_LANG);
   let state = null;        // the current video: {vid, title, tracks, cues, run, ...}
   let currentVid = null;
+  // model -> average time of one translation request, measured on this page.
+  // A model's first request isn't counted: it may include loading the model.
+  const batchMs = {};
+  const warmModels = new Set();
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -305,13 +309,30 @@
     syncPipCues(run, i0, i1);
   }
 
+  // Translates batch k, timing the request for the wait estimate and
+  // updating the status every second while it runs.
+  async function timedBatch(run, k) {
+    const t0 = Date.now();
+    run.busy = { k, t0 };
+    updateProgress(run);
+    const timer = setInterval(() => updateProgress(run), 1000);
+    try {
+      await translateBatch(run, k);
+      if (!isLive(run)) return;
+      if (warmModels.has(run.model)) batchMs[run.model] = S.nextAvg(batchMs[run.model], Date.now() - t0);
+      else warmModels.add(run.model);
+    } finally {
+      clearInterval(timer);
+      run.busy = null;
+    }
+  }
+
   async function worker(run) {
     while (isLive(run)) {
       const k = nextBatch(run);
       if (k == null) { updateProgress(run); await sleep(2000); continue; }
       try {
-        updateProgress(run, true);
-        await translateBatch(run, k);
+        await timedBatch(run, k);
         if (run.error) { run.error = null; setStatus(''); }
       } catch (e) {
         if (!isLive(run)) break;
@@ -322,14 +343,20 @@
     }
   }
 
-  function updateProgress(run, busy) {
+  function updateProgress(run) {
     if (run.error || !isLive(run)) return;
+    const v = videoEl();
+    // Before the first line, wait for that line.
+    const ci = Math.max(0, S.cueIndexAt(run.cues, v ? v.currentTime : 0));
+    const waiting = run.busy && ci < run.cues.length && run.tr[ci] === undefined;
+    if (waiting) {
+      const sameBatch = run.busy.k === Math.floor(ci / S.BATCH);
+      setStatus(S.waitStatus(S.waitEstimate(batchMs[run.model], Date.now() - run.busy.t0, sameBatch)));
+    } else {
+      setStatus('');
+    }
     const total = run.cues.length;
     const pct = Math.round(100 * run.tr.filter(x => x !== undefined).length / Math.max(1, total));
-    const v = videoEl();
-    const ci = S.cueIndexAt(run.cues, v ? v.currentTime : 0);
-    const ready = ci < 0 || run.tr[ci] !== undefined;
-    setStatus(busy && !ready ? 'Translating… ' + pct + '%' : '');
     if (state.button) {
       state.button.title = 'Translated subtitles: on (' + run.srcName + ' → ' + run.tgtName + ', ' +
         pct + '% done). Click to turn off.';

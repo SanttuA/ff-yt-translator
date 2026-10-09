@@ -352,3 +352,24 @@ describe('misc', () => {
     expect(S.modelsUrl(' http://127.0.0.1:11434/ ')).toBe('http://127.0.0.1:11434/v1/models');
   });
 });
+
+describe('wait estimate', () => {
+  test('nextAvg starts from the first time and leans to recent ones', () => {
+    expect(S.nextAvg(undefined, 4000)).toBe(4000);
+    expect(S.nextAvg(4000, 8000)).toBe(5200);
+  });
+
+  test('waitEstimate counts what is left of the request and one more if needed', () => {
+    expect(S.waitEstimate(undefined, 1000, true)).toBe(null);
+    expect(S.waitEstimate(5000, 2000, true)).toBe(3000);
+    expect(S.waitEstimate(5000, 2000, false)).toBe(8000);
+    expect(S.waitEstimate(5000, 7000, true)).toBe(0);
+  });
+
+  test('waitStatus formats seconds and minutes', () => {
+    expect(S.waitStatus(null)).toBe('Translating…');
+    expect(S.waitStatus(0)).toBe('Translating… almost ready');
+    expect(S.waitStatus(12300)).toBe('Translating… ready in ~13 s');
+    expect(S.waitStatus(90000)).toBe('Translating… ready in ~2 min');
+  });
+});
